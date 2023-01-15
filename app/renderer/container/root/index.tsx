@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './index.less';
 import { useHistory } from 'react-router';
 import Logo from '@assets/logo.png';
 import { shell } from 'electron';
 import { ROUTER_ENTRY } from '@common/constants/router';
 import { isHttpOrHttpsUrl } from '@common/utils/routers';
+import { useDispatch, useSelector } from 'react-redux';
 function Root() {
+  // 测试代码
+  const dispatch = useDispatch();
+  const appName = useSelector((state: any) => state.globalModel.appName);
+
+  useEffect(() => {
+    setTimeout(() => {
+      console.log('3s 后修改...');
+      dispatch({
+        type: 'globalModel/setStore',
+        payload: {
+          key: 'appName',
+          values: 'resume123',
+        },
+      });
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    console.log('appName = ', appName);
+  }, [appName]);
+  // 测试代码-结束
+
   const history = useHistory();
   const onRouterToLink = (router: TSRouter.Item) => {
     if (isHttpOrHttpsUrl(router.url)) {
