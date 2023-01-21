@@ -1,10 +1,11 @@
 import React from 'react';
 import './index.less';
 import { useHistory } from 'react-router';
+import { compilePath } from '@common/utils/router';
 
 function Header() {
   const history = useHistory();
-  const goBack = () => history.push('/');
+  const goBack = () => history.push(compilePath('/'));
   return (
     <div styleName="header">
       <div styleName="back" onClick={goBack}>
