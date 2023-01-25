@@ -13,7 +13,7 @@ import { createUID } from '@common/utils';
 import { compilePath } from '@common/utils/router';
 import ROUTER, { ROUTER_KEY } from '@common/constants/router';
 import { intToDateString } from '@common/utils/time';
-import { getAppPath } from '@common/utils/appPath';
+import { getUserStoreDataPath } from '@common/utils/appPath';
 import { useReadGlobalConfigFile, useUpdateGlobalConfigFile } from '@src/hooks/useGlobalConfigActionHooks';
 import useClickAway from '@common/hook/useClickAway';
 
@@ -23,7 +23,7 @@ function ResumeAction() {
   const base: TSResume.Base = useSelector((state: any) => state.resumeModel.base);
   const work: TSResume.Work = useSelector((state: any) => state.resumeModel.work);
   const resume = useSelector((state: any) => state.resumeModel);
-  const readAppConfigThemeFile = useReadGlobalConfigFile();
+  const readGlobalConfigFile = useReadGlobalConfigFile();
   const updateGlobalConfigFile = useUpdateGlobalConfigFile();
   const { ref, componentVisible, setComponentVisible } = useClickAway(false);
 
@@ -42,14 +42,14 @@ function ResumeAction() {
   const exportPdf = () => {
     toPrintPdf(`${base?.username}+${base?.school}+${work?.job}`);
     setComponentVisible(false);
-    readAppConfigThemeFile().then((value: { [key: string]: any }) => {
+    readGlobalConfigFile().then((value: { [key: string]: any }) => {
       if (value?.resumeSavePath) {
         saveResumeJson(value?.resumeSavePath);
       } else {
         // 👇 2.2 不存在默认路径，则设置默认路径并更新文件内容
-        getAppPath().then((appPath: string) => {
-          updateGlobalConfigFile('resumeSavePath', `${appPath}resumeCache`);
-          saveResumeJson(`${appPath}resumeCache`);
+        getUserStoreDataPath().then((appPath: string) => {
+          updateGlobalConfigFile('resumeSavePath', `${appPath}/resumeCache`);
+          saveResumeJson(`${appPath}/resumeCache`);
         });
       }
     });
@@ -61,14 +61,26 @@ function ResumeAction() {
     const prefix = `${date}_${base?.username}_${base?.school}_${work?.job}_${createUID()}.json`;
     // 如果路径中不存在 resumeCache 文件夹，则默认创建此文件夹
     if (resumeSavePath && resumeSavePath.search('resumeCache') > -1) {
-      fileAction?.write(`${resumeSavePath}/${prefix}`, resume, 'utf8');
+      fileAction
+        .canRead(resumeSavePath)
+        .then(() => {
+          fileAction?.write(`${resumeSavePath}/${prefix}`, resume, 'utf8');
+        })
+        .catch(() => {
+          fileAction
+            .mkdirDir(resumeSavePath)
+            .then(() => {
+              fileAction?.write(`${resumeSavePath}/${prefix}`, resume, 'utf8');
+            })
+            .catch(() => {
+              console.log('创建文件夹失败');
+            });
+        });
     } else {
       fileAction
-        ?.mkdirDir(`${resumeSavePath}/resumeCache`)
-        .then((path) => {
-          if (path) {
-            fileAction?.write(`${path}/${prefix}`, resume, 'utf8');
-          }
+        .mkdirDir(`${resumeSavePath}/resumeCache`)
+        .then(() => {
+          fileAction?.write(`${resumeSavePath}/resumeCache/${prefix}`, resume, 'utf8');
         })
         .catch(() => {
           console.log('创建文件夹失败');
